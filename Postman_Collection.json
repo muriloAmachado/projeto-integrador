@@ -1,0 +1,391 @@
+{
+  "info": {
+    "_postman_id": "projeto-integrador-api",
+    "name": "Projeto Integrador - API Collection",
+    "description": "Collection de endpoints documentados para a API de Transporte",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.set('token', pm.response.json().token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao.silva@example.com\",\n  \"password\": \"senha123456\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/users/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            },
+            "description": "Realiza login e retorna JWT token válido por 1 hora"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"joao.silva@example.com\",\n  \"password\": \"senha123456\"\n}"
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/users/login",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "users",
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCIsImVtYWlsIjoiam9hby5zaWx2YUBleGFtcGxlLmNvbSIsInJvbGUiOiJDTElFTlRFIiwiaWF0IjoxNzE1NDE2NjAwLCJleHAiOjE3MTU0MjAyMDB9.abcdefg123456\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Travel Proposals",
+      "item": [
+        {
+          "name": "Get All Proposals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/proposals",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "proposals"
+              ]
+            },
+            "description": "Retorna lista de todas as propostas de viagem cadastradas (requer autenticação)"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/proposals",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "proposals"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"660e8400-e29b-41d4-a716-446655440000\",\n    \"clienteId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"origem\": \"Campinas\",\n    \"destino\": \"São Paulo\",\n    \"valor_inicial\": \"120.00\",\n    \"data_ida\": \"2026-05-20T08:00:00.000Z\",\n    \"data_volta\": null,\n    \"status\": \"PENDENTE\",\n    \"criado_em\": \"2026-05-11T10:35:00.000Z\"\n  },\n  {\n    \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n    \"clienteId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"origem\": \"Jundiaí\",\n    \"destino\": \"Guarujá\",\n    \"valor_inicial\": \"220.00\",\n    \"data_ida\": \"2026-05-22T10:00:00.000Z\",\n    \"data_volta\": \"2026-05-25T18:00:00.000Z\",\n    \"status\": \"ACEITO\",\n    \"criado_em\": \"2026-05-11T10:36:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Proposal by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/proposals/660e8400-e29b-41d4-a716-446655440000",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "proposals",
+                "660e8400-e29b-41d4-a716-446655440000"
+              ]
+            },
+            "description": "Retorna uma proposta específica pelo ID"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/proposals/660e8400-e29b-41d4-a716-446655440000",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "proposals",
+                    "660e8400-e29b-41d4-a716-446655440000"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"660e8400-e29b-41d4-a716-446655440000\",\n  \"clienteId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"origem\": \"Campinas\",\n  \"destino\": \"São Paulo\",\n  \"valor_inicial\": \"120.00\",\n  \"data_ida\": \"2026-05-20T08:00:00.000Z\",\n  \"data_volta\": null,\n  \"status\": \"PENDENTE\",\n  \"criado_em\": \"2026-05-11T10:35:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Proposals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/proposals/client",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "proposals",
+                "client"
+              ]
+            },
+            "description": "Retorna propostas do cliente autenticado"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "http://localhost:3000/api/proposals/client",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "proposals",
+                    "client"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": \"660e8400-e29b-41d4-a716-446655440000\",\n    \"clienteId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"origem\": \"Campinas\",\n    \"destino\": \"São Paulo\",\n    \"valor_inicial\": \"120.00\",\n    \"data_ida\": \"2026-05-20T08:00:00.000Z\",\n    \"data_volta\": null,\n    \"status\": \"PENDENTE\",\n    \"criado_em\": \"2026-05-11T10:35:00.000Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Create Proposal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Campinas\",\n  \"destino\": \"São Paulo\",\n  \"valor_inicial\": \"150.00\",\n  \"data_ida\": \"2026-05-20T08:00:00Z\",\n  \"data_volta\": null\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/proposals",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "proposals"
+              ]
+            },
+            "description": "Cria uma nova proposta de viagem para o cliente autenticado"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"origem\": \"Campinas\",\n  \"destino\": \"São Paulo\",\n  \"valor_inicial\": \"150.00\",\n  \"data_ida\": \"2026-05-20T08:00:00Z\"\n}"
+                },
+                "url": {
+                  "raw": "http://localhost:3000/api/proposals",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "3000",
+                  "path": [
+                    "api",
+                    "proposals"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"660e8400-e29b-41d4-a716-446655440002\",\n  \"clienteId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"origem\": \"Campinas\",\n  \"destino\": \"São Paulo\",\n  \"valor_inicial\": \"150.00\",\n  \"data_ida\": \"2026-05-20T08:00:00.000Z\",\n  \"data_volta\": null,\n  \"status\": \"PENDENTE\",\n  \"criado_em\": \"2026-05-11T11:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

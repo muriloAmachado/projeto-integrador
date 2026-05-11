@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+
+enum Role {
+  CLIENTE
+  MOTORISTA
+  ADMIN
+}
+
+enum TripStatus {
+  PENDENTE
+  NEGOCIAÇÃO
+  ACEITO
+  CANCELADO
+}
+
+model User {
+  id            String         @id @default(uuid())
+  nome          String
+  email         String         @unique
+  senha_hash    String
+  role          Role           @default(CLIENTE)
+  criado_em     DateTime       @default(now())
+
+  propostas            TravelProposal[]
+  negotiations         Negotiation[]
+
+  corridasMotorista    CompletedTrip[] @relation("RelacaoMotorista")
+  viagensCliente       CompletedTrip[] @relation("RelacaoCliente")
+}
+
+model TravelProposal {
+  id              String         @id @default(uuid())
+  clienteId       String
+  cliente         User           @relation(fields: [clienteId], references: [id])
+  origem          String
+  destino         String
+  valor_inicial   Decimal        @db.Decimal(10, 2)
+  data_ida        DateTime
+  data_volta      DateTime?
+  status          String         @default("PENDENTE") // PENDENTE, NEGOCIANDO, ACEITO, CANCELADO
+  criado_em       DateTime       @default(now())
+
+  negotiations    Negotiation[]
+  completedTrip   CompletedTrip?
+}
+
+model Negotiation {
+  id              String         @id @default(uuid())
+  propostaId      String
+  proposta        TravelProposal @relation(fields: [propostaId], references: [id])
+  motoristaId     String
+  motorista       User           @relation(fields: [motoristaId], references: [id])
+  valor_ofertado  Decimal        @db.Decimal(10, 2)
+  status          String         @default("EM_ANALISE") // EM_ANALISE, ACEITA, RECUSADA
+  criado_em       DateTime       @default(now())
+}
+
+model CompletedTrip {
+  id              String         @id @default(uuid())
+  propostaId      String         @unique
+  proposta        TravelProposal @relation(fields: [propostaId], references: [id])
+  motoristaId     String
+  motorista       User           @relation("RelacaoMotorista", fields: [motoristaId], references: [id])
+  clienteId       String
+  cliente         User           @relation("RelacaoCliente", fields: [clienteId], references: [id])
+  valor_final     Decimal        @db.Decimal(10, 2)
+  codigo_confirma String         @unique // O código que você mencionou antes
+  realizada_em    DateTime       @default(now())
+}
