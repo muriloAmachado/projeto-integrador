@@ -28,6 +28,7 @@ class ApiClient {
 
   Map<String, String> _headers(String? token) => {
         'Content-Type': 'application/json',
+        'Connection': 'close',
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
