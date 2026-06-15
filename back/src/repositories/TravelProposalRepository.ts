@@ -51,6 +51,21 @@ export class TravelProposalRepository {
   async findByClientId(clienteId: string) {
     return prisma.travelProposal.findMany({
       where: { clienteId },
+      include: {
+        negotiations: {
+          include: {
+            motorista: {
+              select: {
+                id: true,
+                nome: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: { criado_em: 'desc' },
+        },
+      },
       orderBy: { criado_em: 'desc' },
     });
   }

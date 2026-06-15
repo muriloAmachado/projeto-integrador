@@ -13,12 +13,35 @@ export class NegotiationRepository {
   }
 
   async findById(id: string) {
-    return prisma.negotiation.findUnique({ where: { id } });
+    return prisma.negotiation.findUnique({
+      where: { id },
+      include: {
+        proposta: true,
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    });
   }
 
   async findByProposalId(propostaId: string) {
     return prisma.negotiation.findMany({
       where: { propostaId },
+      include: {
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
       orderBy: { criado_em: 'desc' },
     });
   }

@@ -10,16 +10,22 @@ export class NegotiationController {
 
   async create(req: Request, res: Response) {
     try {
-      const motoristaId = (req as any).user?.id;
+      const senderId = (req as any).user?.id;
+      const senderRole = (req as any).user?.role;
       const { propostaId, valor_ofertado } = req.body;
 
-      if (!motoristaId) {
+      if (!senderId) {
         return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      if (senderRole !== 'CLIENTE' && senderRole !== 'MOTORISTA') {
+        return res.status(403).json({ message: 'Unauthorized' });
       }
 
       const negotiation = await this.negotiationService.createNegotiation(
         propostaId,
-        motoristaId,
+        senderId,
+        senderRole,
         valor_ofertado
       );
 
@@ -36,6 +42,23 @@ export class NegotiationController {
       res.json(negotiations);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  }
+
+  async accept(req: Request, res: Response) {
+    try {
+      const accepterId = (req as any).user?.id;
+      const accepterRole = (req as any).user?.role;
+      const { id } = req.params;
+
+      if (!accepterId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const trip = await this.negotiationService.acceptNegotiation(id, accepterId, accepterRole);
+      res.status(200).json(trip);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   }
 
