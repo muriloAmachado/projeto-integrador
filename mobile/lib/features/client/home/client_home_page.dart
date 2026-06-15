@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../auth/domain/entities/auth_session.dart';
 import '../../auth/presentation/viewmodels/auth_view_model.dart';
+import '../../travel_proposal/presentation/pages/create_travel_proposal_page.dart';
 
 class ClientHomePage extends StatelessWidget {
   const ClientHomePage({super.key, required this.session});
@@ -39,9 +40,31 @@ class ClientHomePage extends StatelessWidget {
             const SizedBox(height: 24),
             Card(
               color: const Color(0xFFE8F1FB),
-              child: const Padding(
-                padding: EdgeInsets.all(20),
-                child: Text('Aqui entra o fluxo de cadastro da demanda de viagem.'),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Aqui entra o fluxo de cadastro da demanda de viagem.'),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () async {
+                        final created = await Navigator.of(context).push<bool>(
+                          MaterialPageRoute(
+                            builder: (_) => CreateTravelProposalPage(session: session),
+                          ),
+                        );
+
+                        if (created == true && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nova demanda cadastrada.')),
+                          );
+                        }
+                      },
+                      child: const Text('Criar nova demanda'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
