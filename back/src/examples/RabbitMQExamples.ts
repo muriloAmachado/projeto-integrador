@@ -108,7 +108,7 @@ export const requestPayment = async (req: Request, res: Response) => {
     });
 
     // Retornar imediatamente ao usuário
-    res.accepted().json({
+    res.status(202).send({
       message: 'Pagamento em processamento',
       status: 'PENDING',
     });

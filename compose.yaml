@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_DB: projeto_integrador
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: docker.io/library/rabbitmq:4-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+
+  backend:
+    build: ./back
+    container_name: backend
+    depends_on:
+      - postgres
+      - rabbitmq
+    env_file:
+      - ./back/.env
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

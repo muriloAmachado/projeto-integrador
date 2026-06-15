@@ -7,7 +7,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
-    "seed": "ts-node --transpile-only prisma/seed.ts"
+    "seed": "ts-node --transpile-only prisma/seed.ts",
+    "start:prod": "npx prisma migrate deploy && node dist/server.js"
   },
   "prisma": {
     "seed": "ts-node --transpile-only prisma/seed.ts"
