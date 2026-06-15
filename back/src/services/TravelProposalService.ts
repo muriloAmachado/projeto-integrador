@@ -2,6 +2,13 @@ import { TravelProposalRepository } from '../repositories/TravelProposalReposito
 import { CreateTravelProposalInput, TravelProposalStatus } from '../models/TravelProposal';
 import RabbitMQService from './RabbitMQService';
 
+export interface DriverTravelProposalFilters {
+  origem?: string;
+  destino?: string;
+  data_ida?: string;
+  data_volta?: string;
+}
+
 export class TravelProposalService {
   private travelProposalRepository: TravelProposalRepository;
 
@@ -45,6 +52,10 @@ export class TravelProposalService {
 
   async listByClient(clienteId: string) {
     return this.travelProposalRepository.findByClientId(clienteId);
+  }
+
+  async listForDriver(filters: DriverTravelProposalFilters = {}) {
+    return this.travelProposalRepository.findForDriver(filters);
   }
 
   async updateStatus(id: string, status: TravelProposalStatus) {

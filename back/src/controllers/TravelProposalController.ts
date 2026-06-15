@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { TravelProposalService } from '../services/TravelProposalService';
+import { DriverTravelProposalFilters, TravelProposalService } from '../services/TravelProposalService';
 
 export class TravelProposalController {
   private travelProposalService: TravelProposalService;
@@ -39,6 +39,33 @@ export class TravelProposalController {
       res.json(proposals);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  }
+
+  async getForDriver(req: Request, res: Response) {
+    try {
+      const motoristaId = (req as any).user?.id;
+      const role = (req as any).user?.role;
+
+      if (!motoristaId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      if (role !== 'MOTORISTA') {
+        return res.status(403).json({ message: 'Only drivers can access this resource' });
+      }
+
+      const filters: DriverTravelProposalFilters = {
+        origem: typeof req.query.origem === 'string' ? req.query.origem.trim() : undefined,
+        destino: typeof req.query.destino === 'string' ? req.query.destino.trim() : undefined,
+        data_ida: typeof req.query.data_ida === 'string' ? req.query.data_ida.trim() : undefined,
+        data_volta: typeof req.query.data_volta === 'string' ? req.query.data_volta.trim() : undefined,
+      };
+
+      const proposals = await this.travelProposalService.listForDriver(filters);
+      res.json(proposals);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   }
 
