@@ -1,6 +1,7 @@
 ﻿import dotenv from 'dotenv';
 import express from 'express';
 import userRoutes from './routes/userRoutes';
+import cors from 'cors';
 import travelProposalRoutes from './routes/travelProposalRoutes';
 import negotiationRoutes from './routes/negotiationRoutes';
 import completedTripRoutes from './routes/completedTripRoutes';
@@ -11,6 +12,12 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 
