@@ -1,30 +1,41 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:projeto_integrador_mobile/main.dart';
+import 'package:projeto_integrador_mobile/app/app.dart';
+import 'package:projeto_integrador_mobile/core/storage/session_storage.dart';
+import 'package:projeto_integrador_mobile/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:projeto_integrador_mobile/features/auth/data/services/auth_service.dart';
+import 'package:projeto_integrador_mobile/features/auth/domain/usecases/login_usecase.dart';
+import 'package:projeto_integrador_mobile/features/auth/presentation/viewmodels/auth_view_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('shows the login screen when there is no session', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final sessionStorage = SessionStorage();
+    final authService = AuthService();
+    final authRepository = AuthRepositoryImpl(
+      authService: authService,
+      sessionStorage: sessionStorage,
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => AuthViewModel(
+          loginUseCase: LoginUseCase(authRepository),
+          authRepository: authRepository,
+        )..bootstrap(),
+        child: const TravelApp(),
+      ),
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bem Vindo'), findsOneWidget);
+    expect(find.text('Entrar'), findsOneWidget);
   });
 }

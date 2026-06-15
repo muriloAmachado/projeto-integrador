@@ -26,23 +26,45 @@ class ApiClient {
     return _decode(response);
   }
 
-  Map<String, String> _headers(String? token) => {
-        'Content-Type': 'application/json',
-        'Connection': 'close',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
+  Future<dynamic> getJson(String path, {String? token}) async {
+    final response = await _client.get(_uri(path), headers: _headers(token));
 
-  Map<String, dynamic> _decode(http.Response response) {
+    return _decode(response);
+  }
+
+  Future<dynamic> patchJson(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    final response = await _client.patch(
+      _uri(path),
+      headers: _headers(token),
+      body: jsonEncode(body ?? const <String, dynamic>{}),
+    );
+
+    return _decode(response);
+  }
+
+  Map<String, String> _headers(String? token) => {
+    'Content-Type': 'application/json',
+    'Connection': 'close',
+    if (token != null) 'Authorization': 'Bearer $token',
+  };
+
+  dynamic _decode(http.Response response) {
     final decodedBody = response.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(response.body) as Map<String, dynamic>;
+        ? null
+        : jsonDecode(response.body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decodedBody;
     }
 
-    throw AppException(
-      decodedBody['message']?.toString() ?? 'Falha ao comunicar com o backend',
-    );
+    final message = decodedBody is Map<String, dynamic>
+        ? decodedBody['message']?.toString()
+        : null;
+
+    throw AppException(message ?? 'Falha ao comunicar com o backend');
   }
 }
