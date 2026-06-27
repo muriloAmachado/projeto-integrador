@@ -21,7 +21,7 @@ export class UserService {
     };
   }
 
-  async register(nome: string | undefined, email: string, password: string): Promise<PublicUser> {
+  async register(nome: string | undefined, email: string, password: string, role?: 'CLIENTE' | 'MOTORISTA'): Promise<PublicUser> {
     const existingUser = await this.userRepository.findByEmail(email);
     if (existingUser) {
       throw new Error('User already exists');
@@ -32,7 +32,7 @@ export class UserService {
       nome: nome?.trim() || email.split('@')[0],
       email,
       senha_hash: hashedPassword,
-      role: 'CLIENTE',
+      role: role ?? 'CLIENTE',
     });
 
     return this.formatUser(user);

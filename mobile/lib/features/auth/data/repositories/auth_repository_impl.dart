@@ -26,6 +26,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> register({
+    required String nome,
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    await _authService.register(nome: nome, email: email, password: password, role: role);
+  }
+
+  @override
   Future<AuthSession?> currentSession() async {
     final token = await _sessionStorage.readToken();
     if (token == null || token.isEmpty || JwtDecoder.isExpired(token)) {

@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../auth/domain/entities/auth_session.dart';
 import '../../auth/presentation/viewmodels/auth_view_model.dart';
+import '../../notification/presentation/widgets/notification_bell.dart';
 import '../../travel_proposal/data/repositories/travel_proposal_repository_impl.dart';
 import '../../travel_proposal/data/services/travel_proposal_service.dart';
 import '../../travel_proposal/domain/entities/travel_proposal_summary.dart';
-import '../../travel_proposal/domain/usecases/list_driver_proposals_usecase.dart';
 import '../../travel_proposal/presentation/viewmodels/driver_proposals_view_model.dart';
 
 class DriverHomePage extends StatefulWidget {
@@ -29,7 +29,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
       service: TravelProposalService(),
     );
     _viewModel = DriverProposalsViewModel(
-      useCase: ListDriverProposalsUseCase(_repository),
+      repository: _repository,
     )..load(token: widget.session.token);
   }
 
@@ -131,7 +131,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
 
       if (value == null || !mounted) return;
 
-      await _repository.createNegotiation(
+      await _viewModel.sendOffer(
         token: widget.session.token,
         proposalId: proposal.id,
         value: value,
@@ -139,14 +139,54 @@ class _DriverHomePageState extends State<DriverHomePage> {
 
       if (!mounted) return;
 
-      await _refresh();
-      if (mounted) {
+      if (_viewModel.errorMessage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sua proposta foi enviada com sucesso!')),
         );
       }
     } finally {
       controller.dispose();
+    }
+  }
+
+  Future<void> _acceptCounterProposal(
+    ProposalNegotiationSummary negotiation,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Aceitar contraproposta'),
+        content: Text(
+          'Confirmar a viagem pelo valor de '
+          'R\$ ${negotiation.valorOfertado.toStringAsFixed(2).replaceAll('.', ',')}? '
+          'A viagem será fechada com este grupo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Aceitar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _viewModel.acceptNegotiation(
+      token: widget.session.token,
+      negotiationId: negotiation.id,
+    );
+
+    if (!mounted) return;
+
+    if (_viewModel.errorMessage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Viagem confirmada com o grupo!')),
+      );
     }
   }
 
@@ -167,6 +207,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
             style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
           ),
           actions: [
+            NotificationBell(session: widget.session),
             IconButton(
               onPressed: authViewModel.logout,
               icon: const Icon(Icons.logout_rounded),
@@ -248,7 +289,8 @@ class _DriverHomePageState extends State<DriverHomePage> {
                                     padding: const EdgeInsets.only(bottom: 12),
                                     child: _ProposalCard(
                                       proposal: proposal,
-                                      isSubmitting: false,
+                                      currentUserId: widget.session.userId,
+                                      isSubmitting: viewModel.isSubmitting,
                                       onCounterProposal: () => _openNegotiationDialog(
                                         proposal,
                                         initialValue: proposal.valorInicial,
@@ -260,6 +302,7 @@ class _DriverHomePageState extends State<DriverHomePage> {
                                         title: 'Aceitar Valor do Grupo',
                                         blockInput: true,
                                       ),
+                                      onAcceptCounterProposal: _acceptCounterProposal,
                                     ),
                                   );
                                 },
@@ -381,19 +424,34 @@ class _SummaryPill extends StatelessWidget {
 class _ProposalCard extends StatelessWidget {
   const _ProposalCard({
     required this.proposal,
+    required this.currentUserId,
     required this.isSubmitting,
     required this.onCounterProposal,
     required this.onAcceptClientValue,
+    required this.onAcceptCounterProposal,
   });
 
   final TravelProposalSummary proposal;
+  final String currentUserId;
   final bool isSubmitting;
   final VoidCallback onCounterProposal;
   final VoidCallback onAcceptClientValue;
+  final Future<void> Function(ProposalNegotiationSummary negotiation)
+  onAcceptCounterProposal;
 
   @override
   Widget build(BuildContext context) {
     final statusColor = _statusColor(proposal.status);
+
+    // Contrapropostas enviadas pelo cliente que o motorista pode aceitar.
+    final clientCounterProposals = proposal.negotiations
+        .where((n) => n.senderRole == 'CLIENTE')
+        .toList(growable: false);
+
+    // Ofertas que este motorista já enviou (aguardando o aceite do cliente).
+    final ownOffers = proposal.negotiations
+        .where((n) => n.senderRole == 'MOTORISTA' && n.senderId == currentUserId)
+        .toList(growable: false);
 
     return Container(
       decoration: BoxDecoration(
@@ -475,6 +533,51 @@ class _ProposalCard extends StatelessWidget {
               ],
             ),
           ),
+          if (clientCounterProposals.isNotEmpty || ownOffers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Negociações',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...clientCounterProposals.map(
+                    (negotiation) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _NegotiationTile(
+                        title: 'Contraproposta do grupo',
+                        value: negotiation.valorOfertado,
+                        status: negotiation.status,
+                        canAccept:
+                            !isSubmitting && negotiation.status == 'EM_ANALISE',
+                        onAccept: () => onAcceptCounterProposal(negotiation),
+                      ),
+                    ),
+                  ),
+                  ...ownOffers.map(
+                    (negotiation) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _NegotiationTile(
+                        title: 'Sua oferta enviada',
+                        value: negotiation.valorOfertado,
+                        status: negotiation.status,
+                        canAccept: false,
+                        onAccept: null,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -537,6 +640,87 @@ class _ProposalCard extends StatelessWidget {
   String _formatDate(DateTime? date) {
     if (date == null) return '';
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+  }
+}
+
+class _NegotiationTile extends StatelessWidget {
+  const _NegotiationTile({
+    required this.title,
+    required this.value,
+    required this.status,
+    required this.canAccept,
+    required this.onAccept,
+  });
+
+  final String title;
+  final double value;
+  final String status;
+  final bool canAccept;
+  final VoidCallback? onAccept;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+              Text(
+                status,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}',
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+              color: Color(0xFF059669),
+            ),
+          ),
+          if (onAccept != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: canAccept ? onAccept : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Aceitar contraproposta'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

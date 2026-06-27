@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../viewmodels/auth_view_model.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -123,6 +124,15 @@ class _LoginPageState extends State<LoginPage> {
                                       child: CircularProgressIndicator(strokeWidth: 2),
                                     )
                                   : const Text('Entrar'),
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const RegisterPage(),
+                                ),
+                              ),
+                              child: const Text('Não tem conta? Cadastre-se'),
                             ),
                           ],
                         ),

@@ -24,4 +24,8 @@ export class UserRepository {
   async getAll(): Promise<PrismaUser[]> {
     return prisma.user.findMany({ orderBy: { criado_em: 'desc' } });
   }
+
+  async findByRole(role: Role): Promise<PrismaUser[]> {
+    return prisma.user.findMany({ where: { role } });
+  }
 }

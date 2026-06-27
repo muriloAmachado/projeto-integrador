@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../auth/domain/entities/auth_session.dart';
 import '../../auth/presentation/viewmodels/auth_view_model.dart';
+import '../../notification/presentation/widgets/notification_bell.dart';
 import '../../travel_proposal/presentation/pages/client_proposals_page.dart';
 import '../../travel_proposal/presentation/pages/create_travel_proposal_page.dart';
 
@@ -26,6 +27,7 @@ class ClientHomePage extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
         ),
         actions: [
+          NotificationBell(session: session),
           IconButton(
             onPressed: authViewModel.logout,
             icon: const Icon(Icons.logout_rounded),

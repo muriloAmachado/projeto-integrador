@@ -5,8 +5,14 @@ import cors from 'cors';
 import travelProposalRoutes from './routes/travelProposalRoutes';
 import negotiationRoutes from './routes/negotiationRoutes';
 import completedTripRoutes from './routes/completedTripRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 import RabbitMQService from './services/RabbitMQService';
 import NotificationService from './services/NotificationService';
+import {
+  NOTIFICATIONS_EXCHANGE,
+  NOTIFICATIONS_QUEUE,
+  NOTIFICATIONS_PATTERN,
+} from './config/rabbitmq';
 
 dotenv.config();
 
@@ -15,7 +21,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -25,6 +31,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/proposals', travelProposalRoutes);
 app.use('/api/negotiations', negotiationRoutes);
 app.use('/api/completed-trips', completedTripRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'API is running!' });
@@ -33,22 +40,19 @@ app.get('/', (req, res) => {
 (async () => {
   try {
     await RabbitMQService.connect();
-    // Registrar consumidor para propostas criadas e notificar motoristas
+    // Vincula a fila de notificações ao exchange de eventos e inicia o worker
+    // que persiste e direciona as notificações aos destinatários.
     try {
-      await RabbitMQService.consumeMessage('travel-proposals', async (message) => {
-        try {
-          if (message && message.type === 'PROPOSAL_CREATED' && message.proposal) {
-            console.log('Consumidor: nova proposta recebida, notificando motoristas...', message.proposal.id);
-            await NotificationService.notifyDriversForProposal(message.proposal);
-          } else {
-            console.log('Consumidor: mensagem de travel-proposals recebida (formato inesperado)', message);
-          }
-        } catch (err) {
-          console.error('Erro ao processar mensagem de travel-proposals:', err);
-        }
+      await RabbitMQService.bindQueue(
+        NOTIFICATIONS_QUEUE,
+        NOTIFICATIONS_EXCHANGE,
+        NOTIFICATIONS_PATTERN
+      );
+      await RabbitMQService.consumeMessage(NOTIFICATIONS_QUEUE, async (message) => {
+        await NotificationService.handleEvent(message);
       });
     } catch (err) {
-      console.error('Não foi possível registrar consumidor de travel-proposals:', err);
+      console.error('Não foi possível registrar consumidor de notificações:', err);
     }
   } catch (err) {
     console.error('Não foi possível conectar ao RabbitMQ na inicialização:', err);

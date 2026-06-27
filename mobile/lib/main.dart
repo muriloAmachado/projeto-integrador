@@ -6,6 +6,7 @@ import 'core/storage/session_storage.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/data/services/auth_service.dart';
 import 'features/auth/domain/usecases/login_usecase.dart';
+import 'features/auth/domain/usecases/register_usecase.dart';
 import 'features/auth/presentation/viewmodels/auth_view_model.dart';
 
 void main() {
@@ -20,6 +21,7 @@ void main() {
     ChangeNotifierProvider(
       create: (_) => AuthViewModel(
         loginUseCase: LoginUseCase(authRepository),
+        registerUseCase: RegisterUseCase(authRepository),
         authRepository: authRepository,
       )..bootstrap(),
       child: const TravelApp(),

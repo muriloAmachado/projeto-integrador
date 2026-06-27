@@ -30,9 +30,24 @@ model User {
 
   propostas            TravelProposal[]
   negotiations         Negotiation[]
+  notifications        Notification[]
 
   corridasMotorista    CompletedTrip[] @relation("RelacaoMotorista")
   viagensCliente       CompletedTrip[] @relation("RelacaoCliente")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  tipo        String   // PROPOSAL_CREATED, NEGOTIATION_CREATED, NEGOTIATION_ACCEPTED
+  titulo      String
+  mensagem    String
+  data        Json?
+  lida        Boolean  @default(false)
+  criado_em   DateTime @default(now())
+
+  @@index([userId, lida])
 }
 
 model TravelProposal {

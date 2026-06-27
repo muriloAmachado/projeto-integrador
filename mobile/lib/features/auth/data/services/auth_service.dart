@@ -20,4 +20,21 @@ class AuthService {
 
     return LoginResponseModel.fromJson(response);
   }
+
+  Future<void> register({
+    required String nome,
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    await _apiClient.postJson(
+      '/users/register',
+      body: <String, dynamic>{
+        'nome': nome,
+        'email': email,
+        'password': password,
+        'role': role,
+      },
+    );
+  }
 }

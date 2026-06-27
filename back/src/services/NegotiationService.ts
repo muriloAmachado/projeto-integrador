@@ -2,6 +2,7 @@ import { NegotiationRepository } from '../repositories/NegotiationRepository';
 import { NegotiationStatus } from '../models/Negotiation';
 import { TravelProposalRepository } from '../repositories/TravelProposalRepository';
 import { CompletedTripRepository } from '../repositories/CompletedTripRepository';
+import NotificationService from './NotificationService';
 
 export class NegotiationService {
   private negotiationRepository: NegotiationRepository;
@@ -33,11 +34,21 @@ export class NegotiationService {
       throw new Error('Unauthorized');
     }
 
-    return this.negotiationRepository.create({
+    const negotiation = await this.negotiationRepository.create({
       propostaId,
       motoristaId: senderId,
       valor_ofertado,
     });
+
+    // Notifica a contraparte (cliente ou motoristas) sobre a oferta/contraproposta
+    await NotificationService.publishNegotiationCreated({
+      negotiation,
+      proposal,
+      senderId,
+      senderRole,
+    });
+
+    return negotiation;
   }
 
   async getByProposalId(propostaId: string) {
@@ -77,13 +88,22 @@ export class NegotiationService {
     const motoristaId = senderIsClient ? accepterId : negotiation.motoristaId;
     const codigoConfirma = `TRIP-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    return this.completedTripRepository.create({
+    const trip = await this.completedTripRepository.create({
       propostaId: proposal.id,
       motoristaId,
       clienteId: proposal.clienteId,
       valor_final: negotiation.valor_ofertado.toString(),
       codigo_confirma: codigoConfirma,
     });
+
+    // Notifica a contraparte que o aceite final ocorreu e a viagem foi confirmada
+    await NotificationService.publishNegotiationAccepted({
+      trip,
+      negotiation,
+      accepterRole,
+    });
+
+    return trip;
   }
 
   async updateStatus(id: string, status: NegotiationStatus) {
