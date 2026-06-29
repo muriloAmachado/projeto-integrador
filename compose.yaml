@@ -1,31 +1,59 @@
+name: projeto-integrador
+
 services:
-  postgres:
-    image: docker.io/library/postgres:17
-    container_name: postgres
+  db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: pi-db
     environment:
-      POSTGRES_DB: projeto_integrador
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: "1234"
+      POSTGRES_DB: lab
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   rabbitmq:
-    image: docker.io/library/rabbitmq:4-management
-    container_name: rabbitmq
+    image: docker.io/library/rabbitmq:3-management-alpine
+    container_name: pi-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  backend:
-    build: ./back
-    container_name: backend
-    depends_on:
-      - postgres
-      - rabbitmq
-    env_file:
-      - ./back/.env
+  api:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: pi-api
+    environment:
+      DATABASE_URL: "postgresql://postgres:1234@db:5432/lab?schema=public"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+      JWT_SECRET: "your_super_secret_jwt_key_here"
+      PORT: "3000"
+      NODE_ENV: "production"
     ports:
       - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  rabbitmq_data:

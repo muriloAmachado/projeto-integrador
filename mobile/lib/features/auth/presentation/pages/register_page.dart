@@ -195,10 +195,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!mounted) return;
 
     if (success) {
-      await viewModel.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      Navigator.of(context).pop(true);
     }
   }
 }

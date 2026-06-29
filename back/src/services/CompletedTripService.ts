@@ -44,8 +44,9 @@ export class CompletedTripService {
     if (trip.motoristaId !== motoristaId) throw new Error('Não autorizado');
     if (trip.finalizada) throw new Error('Viagem já finalizada');
 
-    await this.completedTripRepository.finalize(trip.id);
+    const finalized = await this.completedTripRepository.finalize(trip.id);
     await this.travelProposalRepository.updateStatus(trip.propostaId, 'ENCERRADO');
+    return finalized;
   }
 
   async getTripsByMotorista(motoristaId: string) {

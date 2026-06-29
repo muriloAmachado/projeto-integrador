@@ -61,78 +61,17 @@ class _DriverTripsPageState extends State<DriverTripsPage> {
   }
 
   void _showFinalizeDialog(TravelProposalSummary trip) {
-    final controller = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 32,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(Icons.flag_rounded, color: Color(0xFF059669), size: 40),
-              const SizedBox(height: 12),
-              Text(
-                'Encerrar Viagem',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1E293B),
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${trip.origem} → ${trip.destino}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  labelText: 'Código fornecido pelo cliente',
-                  hintText: 'Ex.: TRIP-123456',
-                  prefixIcon: const Icon(Icons.vpn_key_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () {
-                  final code = controller.text.trim();
-                  if (code.isEmpty) return;
-                  Navigator.of(context).pop();
-                  _finalizeTrip(code);
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Confirmar encerramento'),
-              ),
-            ],
-          ),
-        );
-      },
-    ).whenComplete(controller.dispose);
+      builder: (context) => _FinalizeBottomSheet(
+        trip: trip,
+        onFinalize: _finalizeTrip,
+      ),
+    );
   }
 
   @override
@@ -619,6 +558,99 @@ class _EmptyStateCard extends StatelessWidget {
             style: TextStyle(color: Color(0xFF94A3B8)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FinalizeBottomSheet extends StatefulWidget {
+  const _FinalizeBottomSheet({required this.trip, required this.onFinalize});
+
+  final TravelProposalSummary trip;
+  final void Function(String code) onFinalize;
+
+  @override
+  State<_FinalizeBottomSheet> createState() => _FinalizeBottomSheetState();
+}
+
+class _FinalizeBottomSheetState extends State<_FinalizeBottomSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 32,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(Icons.flag_rounded, color: Color(0xFF059669), size: 40),
+            const SizedBox(height: 12),
+            Text(
+              'Encerrar Viagem',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E293B),
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${widget.trip.origem} → ${widget.trip.destino}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Código fornecido pelo cliente',
+                hintText: 'Ex.: TRIP-123456',
+                prefixIcon: const Icon(Icons.vpn_key_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () {
+                final code = _controller.text.trim();
+                if (code.isEmpty) return;
+                Navigator.of(context).pop();
+                widget.onFinalize(code);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Confirmar encerramento'),
+            ),
+          ],
+        ),
       ),
     );
   }

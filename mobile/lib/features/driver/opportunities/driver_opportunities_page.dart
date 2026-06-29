@@ -41,101 +41,33 @@ class _DriverOpportunitiesPageState extends State<DriverOpportunitiesPage> {
     required String title,
     bool blockInput = false,
   }) async {
-    final controller = TextEditingController(
-      text: initialValue.toStringAsFixed(2),
+    final value = await showModalBottomSheet<double>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => _NegotiationBottomSheet(
+        title: title,
+        initialValue: initialValue,
+        blockInput: blockInput,
+      ),
     );
 
-    try {
-      final value = await showModalBottomSheet<double>(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        builder: (context) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 32,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 32,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1E293B),
-                      ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Informe o valor que você deseja cobrar por esta viagem de ida e volta.',
-                  style: TextStyle(color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: controller,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  autofocus: true,
-                  enabled: !blockInput,
-                  decoration: InputDecoration(
-                    labelText: 'Valor da Proposta (R\$)',
-                    hintText: '0,00',
-                    prefixIcon: const Icon(Icons.payments_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: () {
-                    final parsed = double.tryParse(
-                      controller.text.trim().replaceAll(',', '.'),
-                    );
-                    if (parsed == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Informe um valor válido.')),
-                      );
-                      return;
-                    }
-                    Navigator.of(context).pop(parsed);
-                  },
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text('Enviar Proposta'),
-                ),
-              ],
-            ),
-          );
-        },
+    if (value == null || !mounted) return;
+
+    await _viewModel.sendOffer(
+      token: widget.session.token,
+      proposalId: proposal.id,
+      value: value,
+    );
+
+    if (!mounted) return;
+
+    if (_viewModel.errorMessage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sua proposta foi enviada com sucesso!')),
       );
-
-      if (value == null || !mounted) return;
-
-      await _viewModel.sendOffer(
-        token: widget.session.token,
-        proposalId: proposal.id,
-        value: value,
-      );
-
-      if (!mounted) return;
-
-      if (_viewModel.errorMessage == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sua proposta foi enviada com sucesso!')),
-        );
-      }
-    } finally {
-      controller.dispose();
     }
   }
 
@@ -761,6 +693,106 @@ class _EmptyStateCard extends StatelessWidget {
             style: TextStyle(color: Color(0xFF94A3B8)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NegotiationBottomSheet extends StatefulWidget {
+  const _NegotiationBottomSheet({
+    required this.title,
+    required this.initialValue,
+    this.blockInput = false,
+  });
+
+  final String title;
+  final double initialValue;
+  final bool blockInput;
+
+  @override
+  State<_NegotiationBottomSheet> createState() => _NegotiationBottomSheetState();
+}
+
+class _NegotiationBottomSheetState extends State<_NegotiationBottomSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue.toStringAsFixed(2));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 32,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              widget.title,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E293B),
+                  ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Informe o valor que você deseja cobrar por esta viagem de ida e volta.',
+              style: TextStyle(color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              autofocus: true,
+              enabled: !widget.blockInput,
+              decoration: InputDecoration(
+                labelText: 'Valor da Proposta (R\$)',
+                hintText: '0,00',
+                prefixIcon: const Icon(Icons.payments_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () {
+                final parsed = double.tryParse(
+                  _controller.text.trim().replaceAll(',', '.'),
+                );
+                if (parsed == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Informe um valor válido.')),
+                  );
+                  return;
+                }
+                Navigator.of(context).pop(parsed);
+              },
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Enviar Proposta'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -127,11 +127,22 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             const SizedBox(height: 12),
                             TextButton(
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const RegisterPage(),
-                                ),
-                              ),
+                              onPressed: () async {
+                                final registered = await Navigator.of(context).push<bool>(
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterPage(),
+                                  ),
+                                );
+                                if (registered == true && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Conta criada com sucesso! Faça login.'),
+                                      backgroundColor: Color(0xFF059669),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
                               child: const Text('Não tem conta? Cadastre-se'),
                             ),
                           ],

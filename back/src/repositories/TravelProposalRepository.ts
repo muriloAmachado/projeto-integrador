@@ -126,9 +126,7 @@ export class TravelProposalRepository {
     return prisma.travelProposal.findMany({
       where: {
         status: { in: ['ACEITO', 'ENCERRADO'] },
-        negotiations: {
-          some: { motoristaId, status: 'ACEITA' },
-        },
+        completedTrip: { motoristaId },
       },
       include: {
         negotiations: {

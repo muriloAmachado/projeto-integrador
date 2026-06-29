@@ -128,8 +128,6 @@ class _CreateTravelProposalPageState extends State<CreateTravelProposalPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel = context.read<AuthViewModel>();
-
     return ChangeNotifierProvider.value(
       value: _viewModel,
       child: Scaffold(
@@ -137,7 +135,10 @@ class _CreateTravelProposalPageState extends State<CreateTravelProposalPage> {
           title: const Text('Nova Demanda de Viagem'),
           actions: [
             IconButton(
-              onPressed: authViewModel.logout,
+              onPressed: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                context.read<AuthViewModel>().logout();
+              },
               icon: const Icon(Icons.logout),
             ),
           ],

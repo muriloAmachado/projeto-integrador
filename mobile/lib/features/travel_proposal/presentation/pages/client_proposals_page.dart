@@ -46,91 +46,35 @@ class _ClientProposalsPageState extends State<ClientProposalsPage> {
     TravelProposalSummary proposal, {
     double? initialValue,
   }) async {
-    final controller = TextEditingController(
-      text: (initialValue ?? proposal.valorInicial).toStringAsFixed(2),
+    final value = await showModalBottomSheet<double>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _CounterProposalBottomSheet(
+        initialValue: initialValue ?? proposal.valorInicial,
+      ),
     );
 
-    try {
-      final value = await showModalBottomSheet<double>(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        builder: (context) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Enviar contraproposta',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Novo valor',
-                    hintText: 'Ex.: 180.00',
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () {
-                    final parsed = double.tryParse(
-                      controller.text.trim().replaceAll(',', '.'),
-                    );
+    if (value == null || !mounted) {
+      return;
+    }
 
-                    if (parsed == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Informe um valor válido.'),
-                        ),
-                      );
-                      return;
-                    }
+    await _viewModel.sendCounterProposal(
+      token: widget.session.token,
+      proposalId: proposal.id,
+      value: value,
+    );
 
-                    Navigator.of(context).pop(parsed);
-                  },
-                  child: const Text('Enviar'),
-                ),
-              ],
-            ),
-          );
-        },
+    if (!mounted) {
+      return;
+    }
+
+    if (_viewModel.errorMessage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contraproposta enviada.')),
       );
-
-      if (value == null || !mounted) {
-        return;
-      }
-
-      await _viewModel.sendCounterProposal(
-        token: widget.session.token,
-        proposalId: proposal.id,
-        value: value,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      if (_viewModel.errorMessage == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Contraproposta enviada.')),
-        );
-      }
-    } finally {
-      controller.dispose();
     }
   }
 
@@ -181,8 +125,6 @@ class _ClientProposalsPageState extends State<ClientProposalsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel = context.read<AuthViewModel>();
-
     return ChangeNotifierProvider.value(
       value: _viewModel,
       child: Scaffold(
@@ -190,7 +132,10 @@ class _ClientProposalsPageState extends State<ClientProposalsPage> {
           title: const Text('Minhas demandas'),
           actions: [
             IconButton(
-              onPressed: authViewModel.logout,
+              onPressed: () {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                context.read<AuthViewModel>().logout();
+              },
               icon: const Icon(Icons.logout),
             ),
           ],
@@ -691,6 +636,87 @@ class _TripCodeDialog extends StatelessWidget {
           child: const Text('Fechar'),
         ),
       ],
+    );
+  }
+}
+
+class _CounterProposalBottomSheet extends StatefulWidget {
+  const _CounterProposalBottomSheet({required this.initialValue});
+
+  final double initialValue;
+
+  @override
+  State<_CounterProposalBottomSheet> createState() =>
+      _CounterProposalBottomSheetState();
+}
+
+class _CounterProposalBottomSheetState
+    extends State<_CounterProposalBottomSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.initialValue.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Enviar contraproposta',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Novo valor',
+                hintText: 'Ex.: 180.00',
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () {
+                final parsed = double.tryParse(
+                  _controller.text.trim().replaceAll(',', '.'),
+                );
+                if (parsed == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Informe um valor válido.')),
+                  );
+                  return;
+                }
+                Navigator.of(context).pop(parsed);
+              },
+              child: const Text('Enviar'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

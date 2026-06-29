@@ -6,15 +6,14 @@ COPY package*.json ./
 
 RUN npm config set fetch-retry-maxtimeout 600000 && \
     npm config set fetch-retry-mintimeout 10000 && \
-    npm config set maxsockets 5
+    npm config set maxsockets 5 && \
+    npm ci
 
-RUN npm install
+COPY tsconfig.json ./
+COPY src ./src
+COPY prisma ./prisma
 
-COPY . .
-
-RUN npx prisma generate
-
-RUN npm run build
+RUN npx prisma generate && npm run build
 
 EXPOSE 3000
 
