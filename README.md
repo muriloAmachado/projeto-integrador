@@ -160,26 +160,6 @@ As variáveis abaixo são definidas diretamente no `compose.yaml` para os contai
 
 ---
 
-## Arquitetura dos serviços
-
-```
-┌─────────────┐     HTTP :3000     ┌─────────────────────────────┐
-│  Flutter    │ ◄────────────────► │  API (Node.js / Express)    │
-│  (mobile)   │                    │  container: pi-api          │
-└─────────────┘                    └──────────┬──────────────────┘
-                                              │
-                        ┌─────────────────────┼─────────────────────┐
-                        ▼                                           ▼
-           ┌────────────────────┐                    ┌──────────────────────┐
-           │  PostgreSQL 16     │                    │  RabbitMQ 3          │
-           │  container: pi-db  │                    │  container: pi-rabbitmq │
-           │  porta: 5432       │                    │  porta: 5672         │
-           │  banco: lab        │                    │  painel: 15672       │
-           └────────────────────┘                    └──────────────────────┘
-```
-
----
-
 ## Desenvolvimento local (sem container)
 
 Para rodar a API diretamente na máquina (necessário ter Node.js 20+ e PostgreSQL/RabbitMQ instalados localmente):
