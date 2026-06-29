@@ -49,9 +49,21 @@ class TravelProposalRepositoryImpl implements TravelProposalRepository {
     required String token,
     required String negotiationId,
   }) {
-    return _service.acceptNegotiation(
-      token: token,
-      negotiationId: negotiationId,
-    );
+    return _service.acceptNegotiation(token: token, negotiationId: negotiationId);
+  }
+
+  @override
+  Future<String> getTripCode({required String token, required String proposalId}) {
+    return _service.getTripCode(token: token, proposalId: proposalId);
+  }
+
+  @override
+  Future<List<TravelProposalSummary>> getDriverAcceptedProposals({required String token}) {
+    return _service.getDriverAcceptedProposals(token: token);
+  }
+
+  @override
+  Future<void> finalizeTrip({required String token, required String code}) {
+    return _service.finalizeTrip(token: token, code: code);
   }
 }

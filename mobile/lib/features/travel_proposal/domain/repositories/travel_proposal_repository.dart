@@ -25,4 +25,18 @@ abstract class TravelProposalRepository {
     required String token,
     required String negotiationId,
   });
+
+  Future<String> getTripCode({
+    required String token,
+    required String proposalId,
+  });
+
+  Future<List<TravelProposalSummary>> getDriverAcceptedProposals({
+    required String token,
+  });
+
+  Future<void> finalizeTrip({
+    required String token,
+    required String code,
+  });
 }

@@ -12,9 +12,7 @@ export class CompletedTripService {
 
   async completeTrip(propostaId: string, motoristaId: string, valor_final: string, codigo_confirma: string) {
     const proposal = await this.travelProposalRepository.findById(propostaId);
-    if (!proposal) {
-      throw new Error('Travel proposal not found');
-    }
+    if (!proposal) throw new Error('Travel proposal not found');
 
     return this.completedTripRepository.create({
       propostaId,
@@ -31,6 +29,23 @@ export class CompletedTripService {
 
   async findByProposal(propostaId: string) {
     return this.completedTripRepository.findByProposalId(propostaId);
+  }
+
+  async getCodeForClient(propostaId: string, clienteId: string) {
+    const trip = await this.completedTripRepository.findByProposalId(propostaId);
+    if (!trip) throw new Error('Viagem não encontrada');
+    if (trip.clienteId !== clienteId) throw new Error('Não autorizado');
+    return { codigo_confirma: trip.codigo_confirma, finalizada: trip.finalizada };
+  }
+
+  async finalizeByCode(codigo: string, motoristaId: string) {
+    const trip = await this.completedTripRepository.findByCode(codigo);
+    if (!trip) throw new Error('Código inválido');
+    if (trip.motoristaId !== motoristaId) throw new Error('Não autorizado');
+    if (trip.finalizada) throw new Error('Viagem já finalizada');
+
+    await this.completedTripRepository.finalize(trip.id);
+    await this.travelProposalRepository.updateStatus(trip.propostaId, 'ENCERRADO');
   }
 
   async getTripsByMotorista(motoristaId: string) {

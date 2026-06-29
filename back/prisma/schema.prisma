@@ -86,6 +86,7 @@ model CompletedTrip {
   clienteId       String
   cliente         User           @relation("RelacaoCliente", fields: [clienteId], references: [id])
   valor_final     Decimal        @db.Decimal(10, 2)
-  codigo_confirma String         @unique // O código que você mencionou antes
+  codigo_confirma String         @unique
+  finalizada      Boolean        @default(false)
   realizada_em    DateTime       @default(now())
 }

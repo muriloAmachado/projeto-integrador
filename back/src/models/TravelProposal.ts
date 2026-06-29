@@ -1,4 +1,4 @@
-export type TravelProposalStatus = 'PENDENTE' | 'NEGOCIANDO' | 'ACEITO' | 'CANCELADO';
+export type TravelProposalStatus = 'PENDENTE' | 'NEGOCIANDO' | 'ACEITO' | 'CANCELADO' | 'ENCERRADO';
 
 export interface TravelProposal {
   id: string;

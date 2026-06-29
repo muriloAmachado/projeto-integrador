@@ -80,6 +80,42 @@ class TravelProposalService {
     );
   }
 
+  Future<String> getTripCode({
+    required String token,
+    required String proposalId,
+  }) async {
+    final response = await _apiClient.getJson(
+      '/completed-trips/code/$proposalId',
+      token: token,
+    );
+    return (response as Map<String, dynamic>)['codigo_confirma']?.toString() ?? '';
+  }
+
+  Future<List<TravelProposalSummary>> getDriverAcceptedProposals({
+    required String token,
+  }) async {
+    final response = await _apiClient.getJson(
+      '/proposals/driver/mine',
+      token: token,
+    );
+    final items = _extractItems(response);
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(TravelProposalSummary.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<void> finalizeTrip({
+    required String token,
+    required String code,
+  }) async {
+    await _apiClient.postJson(
+      '/completed-trips/finalize',
+      token: token,
+      body: <String, dynamic>{'codigo': code},
+    );
+  }
+
   List<dynamic> _extractItems(dynamic response) {
     if (response is List) {
       return response;

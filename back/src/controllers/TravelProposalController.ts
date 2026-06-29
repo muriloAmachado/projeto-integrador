@@ -95,6 +95,18 @@ export class TravelProposalController {
     }
   }
 
+  async getDriverAcceptedProposals(req: Request, res: Response) {
+    try {
+      const motoristaId = (req as any).user?.id;
+      if (!motoristaId) return res.status(401).json({ message: 'Unauthorized' });
+
+      const proposals = await this.travelProposalService.listDriverAcceptedProposals(motoristaId);
+      res.json(proposals);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
   async updateStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;

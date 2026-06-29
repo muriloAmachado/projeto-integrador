@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../auth/domain/entities/auth_session.dart';
@@ -141,15 +142,41 @@ class _ClientProposalsPageState extends State<ClientProposalsPage> {
       negotiationId: negotiation.id,
     );
 
-    if (!mounted) {
+    if (!mounted) return;
+
+    if (_viewModel.errorMessage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solicitação aceita.')),
+      );
+    }
+  }
+
+  Future<void> _endTrip(TravelProposalSummary proposal) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final code = await _viewModel.getTripCode(
+      token: widget.session.token,
+      proposalId: proposal.id,
+    );
+
+    if (!mounted) return;
+    Navigator.of(context).pop(); // fecha o loading
+
+    if (code == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_viewModel.errorMessage ?? 'Erro ao buscar código')),
+      );
       return;
     }
 
-    if (_viewModel.errorMessage == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Solicitação aceita.')));
-    }
+    showDialog(
+      context: context,
+      builder: (_) => _TripCodeDialog(code: code),
+    );
   }
 
   @override
@@ -215,16 +242,25 @@ class _ClientProposalsPageState extends State<ClientProposalsPage> {
                       const _EmptyStateCard()
                     else
                       ...viewModel.proposals.map(
-                        (proposal) => Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _ClientProposalCard(
-                            proposal: proposal,
-                            isSubmitting: viewModel.isSubmitting,
-                            onCounterProposal: () =>
-                                _sendCounterProposal(proposal),
-                            onAcceptNegotiation: _acceptNegotiation,
-                          ),
-                        ),
+                        (proposal) {
+                          final isAccepted = proposal.status
+                              .toLowerCase()
+                              .contains('aceit');
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _ClientProposalCard(
+                              proposal: proposal,
+                              isSubmitting: viewModel.isSubmitting,
+                              onCounterProposal: isAccepted
+                                  ? null
+                                  : () => _sendCounterProposal(proposal),
+                              onAcceptNegotiation: _acceptNegotiation,
+                              onEndTrip: isAccepted
+                                  ? () => _endTrip(proposal)
+                                  : null,
+                            ),
+                          );
+                        },
                       ),
                   ],
                 );
@@ -243,13 +279,15 @@ class _ClientProposalCard extends StatelessWidget {
     required this.isSubmitting,
     required this.onCounterProposal,
     required this.onAcceptNegotiation,
+    this.onEndTrip,
   });
 
   final TravelProposalSummary proposal;
   final bool isSubmitting;
-  final VoidCallback onCounterProposal;
+  final VoidCallback? onCounterProposal;
   final Future<void> Function(ProposalNegotiationSummary negotiation)
   onAcceptNegotiation;
+  final VoidCallback? onEndTrip;
 
   @override
   Widget build(BuildContext context) {
@@ -265,28 +303,14 @@ class _ClientProposalCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${proposal.origem} → ${proposal.destino}',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        proposal.status,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-                      ),
-                    ],
+                  child: Text(
+                    '${proposal.origem} → ${proposal.destino}',
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
-                FilledButton.tonal(
-                  onPressed: isSubmitting ? null : onCounterProposal,
-                  child: const Text('Contraproposta'),
-                ),
+                const SizedBox(width: 12),
+                _StatusBadge(status: proposal.status),
               ],
             ),
             const SizedBox(height: 14),
@@ -320,11 +344,30 @@ class _ClientProposalCard extends StatelessWidget {
                     negotiation: negotiation,
                     isOwnProposal: negotiation.senderRole == 'CLIENTE',
                     isSubmitting: isSubmitting,
+                    proposalAccepted: onEndTrip != null,
                     onAccept: () => onAcceptNegotiation(negotiation),
                     onCounterProposal: onCounterProposal,
                   ),
                 ),
               ),
+            if (onEndTrip != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: isSubmitting ? null : onEndTrip,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.flag_rounded),
+                  label: const Text('Encerrar Viagem'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -360,6 +403,7 @@ class _NegotiationTile extends StatelessWidget {
     required this.negotiation,
     required this.isOwnProposal,
     required this.isSubmitting,
+    required this.proposalAccepted,
     required this.onAccept,
     required this.onCounterProposal,
   });
@@ -367,8 +411,9 @@ class _NegotiationTile extends StatelessWidget {
   final ProposalNegotiationSummary negotiation;
   final bool isOwnProposal;
   final bool isSubmitting;
+  final bool proposalAccepted;
   final VoidCallback onAccept;
-  final VoidCallback onCounterProposal;
+  final VoidCallback? onCounterProposal;
 
   @override
   Widget build(BuildContext context) {
@@ -408,24 +453,27 @@ class _NegotiationTile extends StatelessWidget {
           Text(
             'Valor ofertado: R\$ ${negotiation.valorOfertado.toStringAsFixed(2).replaceAll('.', ',')}',
           ),
-          const SizedBox(height: 12),
-          if (isDriverOffer)
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  onPressed: isSubmitting ? null : onAccept,
-                  child: const Text('Aceitar valor'),
-                ),
-                OutlinedButton(
-                  onPressed: isSubmitting ? null : onCounterProposal,
-                  child: const Text('Nova contraproposta'),
-                ),
-              ],
-            )
-          else
-            const Text('Aguardando resposta do motorista.'),
+          if (!proposalAccepted) ...[
+            const SizedBox(height: 12),
+            if (isDriverOffer)
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    onPressed: isSubmitting ? null : onAccept,
+                    child: const Text('Aceitar valor'),
+                  ),
+                  if (onCounterProposal != null)
+                    OutlinedButton(
+                      onPressed: isSubmitting ? null : onCounterProposal,
+                      child: const Text('Nova contraproposta'),
+                    ),
+                ],
+              )
+            else
+              const Text('Aguardando resposta do motorista.'),
+          ],
         ],
       ),
     );
@@ -518,6 +566,129 @@ class _InfoRow extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _color(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w800,
+          fontSize: 10,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Color _color(String s) {
+    final lower = s.toLowerCase();
+    if (lower.contains('aceit')) return const Color(0xFF10B981);
+    if (lower.contains('cancel')) return const Color(0xFFEF4444);
+    if (lower.contains('and')) return const Color(0xFFF59E0B);
+    return const Color(0xFF64748B);
+  }
+}
+
+class _TripCodeDialog extends StatelessWidget {
+  const _TripCodeDialog({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF059669).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.flag_rounded, color: Color(0xFF059669), size: 36),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Código de Encerramento',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1E293B),
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Mostre este código ao motorista para confirmar o fim da viagem.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              code,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+                color: Color(0xFF059669),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: code));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Código copiado!')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              label: const Text('Copiar código'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Fechar'),
         ),
       ],
     );

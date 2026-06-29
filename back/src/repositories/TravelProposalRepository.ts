@@ -122,6 +122,31 @@ export class TravelProposalRepository {
     });
   }
 
+  async findDriverAcceptedProposals(motoristaId: string) {
+    return prisma.travelProposal.findMany({
+      where: {
+        status: { in: ['ACEITO', 'ENCERRADO'] },
+        negotiations: {
+          some: { motoristaId, status: 'ACEITA' },
+        },
+      },
+      include: {
+        negotiations: {
+          include: {
+            motorista: {
+              select: { id: true, nome: true, email: true, role: true },
+            },
+          },
+          orderBy: { criado_em: 'desc' },
+        },
+        cliente: {
+          select: { nome: true, email: true },
+        },
+      },
+      orderBy: { criado_em: 'desc' },
+    });
+  }
+
   async updateStatus(id: string, status: TravelProposalStatus) {
     return prisma.travelProposal.update({
       where: { id },

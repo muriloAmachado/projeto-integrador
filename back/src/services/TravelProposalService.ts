@@ -41,6 +41,10 @@ export class TravelProposalService {
     return this.travelProposalRepository.findForDriver(filters);
   }
 
+  async listDriverAcceptedProposals(motoristaId: string) {
+    return this.travelProposalRepository.findDriverAcceptedProposals(motoristaId);
+  }
+
   async updateStatus(id: string, status: TravelProposalStatus) {
     return this.travelProposalRepository.updateStatus(id, status);
   }

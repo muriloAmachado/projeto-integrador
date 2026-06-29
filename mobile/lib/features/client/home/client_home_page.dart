@@ -23,7 +23,7 @@ class ClientHomePage extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'Vou de Grupo',
+          'Cliente',
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
         ),
         actions: [

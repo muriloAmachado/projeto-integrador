@@ -62,16 +62,26 @@ class ClientProposalsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.acceptNegotiation(
-        token: token,
-        negotiationId: negotiationId,
-      );
+      await _repository.acceptNegotiation(token: token, negotiationId: negotiationId);
       await load(token: token);
     } catch (error) {
       errorMessage = error.toString();
     } finally {
       isSubmitting = false;
       notifyListeners();
+    }
+  }
+
+  Future<String?> getTripCode({
+    required String token,
+    required String proposalId,
+  }) async {
+    try {
+      return await _repository.getTripCode(token: token, proposalId: proposalId);
+    } catch (error) {
+      errorMessage = error.toString();
+      notifyListeners();
+      return null;
     }
   }
 }
